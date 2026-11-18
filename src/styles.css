@@ -415,13 +415,12 @@ a {
   color: var(--fg);
 }
 
-.cell[data-state="saving"] .cell-input,
-.cell[data-state="saving"] .cell-multi {
+.cell-root[data-state="saving"] .cell-input {
   color: var(--fg-muted);
   animation: pulse 1s ease-in-out infinite;
 }
 
-.cell[data-state="error"] {
+.cell-root[data-state="error"] {
   box-shadow: inset 0 -2px 0 var(--danger);
 }
 

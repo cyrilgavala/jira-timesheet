@@ -40,21 +40,21 @@ export function groupWorklogs(worklogs: Worklog[], month: Date): Cells {
   return cells
 }
 
-const sum = (list: Worklog[] | undefined) =>
+export const sumSeconds = (list: Worklog[] | undefined) =>
   (list ?? []).reduce((acc, w) => acc + w.timeSpentSeconds, 0)
 
 export function rowTotal(cells: Cells, issueKey: string): number {
-  return [...(cells.get(issueKey)?.values() ?? [])].reduce((acc, list) => acc + sum(list), 0)
+  return [...(cells.get(issueKey)?.values() ?? [])].reduce((acc, list) => acc + sumSeconds(list), 0)
 }
 
 export function dayTotal(cells: Cells, day: string): number {
   let total = 0
-  for (const row of cells.values()) total += sum(row.get(day))
+  for (const row of cells.values()) total += sumSeconds(row.get(day))
   return total
 }
 
 export function monthTotal(cells: Cells): number {
   let total = 0
-  for (const row of cells.values()) for (const list of row.values()) total += sum(list)
+  for (const row of cells.values()) for (const list of row.values()) total += sumSeconds(list)
   return total
 }
