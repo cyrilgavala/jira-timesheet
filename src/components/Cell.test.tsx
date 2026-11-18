@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -13,6 +13,15 @@ vi.mock('../api/jira', async (importOriginal) => ({
   updateWorklog: vi.fn(),
   deleteWorklog: vi.fn(),
 }))
+
+beforeAll(() => {
+  // Popper (Radix popover positioning) needs ResizeObserver, which jsdom lacks.
+  globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver
+})
 
 afterEach(() => {
   cleanup()
@@ -29,14 +38,13 @@ const worklog = (timeSpentSeconds: number, id = '10'): Worklog => ({
   authorAccountId: 'me',
 })
 
-function renderCell(worklogs: Worklog[], onOpenDetails = vi.fn()) {
+function renderCell(worklogs: Worklog[]) {
   const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
   render(
     <QueryClientProvider client={client}>
-      <Cell issue={issue} day={day} worklogs={worklogs} onOpenDetails={onOpenDetails} />
+      <Cell issue={issue} day={day} worklogs={worklogs} />
     </QueryClientProvider>,
   )
-  return { onOpenDetails }
 }
 
 describe('single-value cell', () => {
@@ -100,11 +108,11 @@ describe('single-value cell', () => {
 })
 
 describe('multi-value cell', () => {
-  it('is a button that opens details, not an input', async () => {
+  it('is a button, not an input, and clicking it opens the worklog list', async () => {
     const user = userEvent.setup()
-    const { onOpenDetails } = renderCell([worklog(3600, '1'), worklog(7200, '2')])
+    renderCell([worklog(3600, '1'), worklog(7200, '2')])
     expect(screen.queryByRole('textbox')).toBeNull()
     await user.click(screen.getByRole('button', { name: /2 worklogs/ }))
-    expect(onOpenDetails).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('dialog')).toBeTruthy()
   })
 })

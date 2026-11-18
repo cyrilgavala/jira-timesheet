@@ -72,9 +72,21 @@ describe('buildJiraProxy', () => {
     ) => void
     expect(handler).toBeTypeOf('function')
 
-    const proxyReq = { removeHeader: vi.fn() }
+    const proxyReq = { removeHeader: vi.fn(), setHeader: vi.fn() }
     handler(proxyReq)
     expect(proxyReq.removeHeader).toHaveBeenCalledWith('origin')
     expect(proxyReq.removeHeader).toHaveBeenCalledWith('referer')
+  })
+
+  it('replaces the browser user-agent, which Jira refuses on writes (403)', () => {
+    const p = buildJiraProxy(env)!
+    const on = vi.fn()
+    ;(p['/jira'].configure as (proxy: unknown) => void)({ on })
+    const handler = on.mock.calls.find(([event]) => event === 'proxyReq')?.[1] as (
+      proxyReq: { removeHeader: (name: string) => void; setHeader: (n: string, v: string) => void },
+    ) => void
+    const proxyReq = { removeHeader: vi.fn(), setHeader: vi.fn() }
+    handler(proxyReq)
+    expect(proxyReq.setHeader).toHaveBeenCalledWith('User-Agent', 'jira-timesheet')
   })
 })

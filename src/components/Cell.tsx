@@ -7,44 +7,48 @@ import { formatHours } from '../lib/hours'
 import { sumSeconds } from '../lib/grid'
 import type { Issue, Worklog } from '../lib/types'
 import { ConfirmDialog } from './ConfirmDialog'
+import { DetailsPopover } from './CellPopover'
 
 interface CellProps {
   issue: Issue
   day: string
   worklogs: Worklog[]
-  onOpenDetails: () => void
 }
 
-// Cells with 2+ worklogs open the popover; 0 or 1 is typed straight in.
+// Cells with 2+ worklogs open the popover; 0 or 1 is typed straight in (Alt+Enter or ⋯ opens the popover).
 export function Cell(props: CellProps) {
   return props.worklogs.length > 1 ? <MultiCell {...props} /> : <SingleCell {...props} />
 }
 
-function MultiCell({ issue, day, worklogs, onOpenDetails }: CellProps) {
+function MultiCell({ issue, day, worklogs }: CellProps) {
+  const [open, setOpen] = useState(false)
   const total = sumSeconds(worklogs)
   return (
-    <div className="cell-root">
-      <button
-        type="button"
-        className="cell-multi"
-        onClick={onOpenDetails}
-        aria-label={`${issue.key} ${format(new Date(`${day}T00:00:00`), 'd MMM')}: ${worklogs.length} worklogs, ${formatHours(total)}h`}
-      >
-        {formatHours(total)}
-      </button>
-      <button type="button" className="cell-more" aria-label="Details" onClick={onOpenDetails}>
-        ⋯
-      </button>
-    </div>
+    <DetailsPopover open={open} onOpenChange={setOpen} issue={issue} day={day} worklogs={worklogs}>
+      <div className="cell-root">
+        <button
+          type="button"
+          className="cell-multi"
+          onClick={() => setOpen(true)}
+          aria-label={`${issue.key} ${format(new Date(`${day}T00:00:00`), 'd MMM')}: ${worklogs.length} worklogs, ${formatHours(total)}h`}
+        >
+          {formatHours(total)}
+        </button>
+        <button type="button" className="cell-more" aria-label="Details" onClick={() => setOpen(true)}>
+          ⋯
+        </button>
+      </div>
+    </DetailsPopover>
   )
 }
 
 type Status = { state: 'idle' } | { state: 'saving' } | { state: 'error'; message: string }
 
-function SingleCell({ issue, day, worklogs, onOpenDetails }: CellProps) {
+function SingleCell({ issue, day, worklogs }: CellProps) {
   const current = worklogs[0]
   const savedText = current ? formatHours(current.timeSpentSeconds) : ''
 
+  const [open, setOpen] = useState(false)
   const [text, setTextState] = useState(savedText)
   const textRef = useRef(savedText) // latest text, read by blur/commit without stale state
   const [invalid, setInvalid] = useState(false)
@@ -110,7 +114,7 @@ function SingleCell({ issue, day, worklogs, onOpenDetails }: CellProps) {
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && e.altKey) {
       e.preventDefault()
-      onOpenDetails()
+      setOpen(true)
     } else if (e.key === 'Enter') {
       e.preventDefault()
       commit()
@@ -122,37 +126,39 @@ function SingleCell({ issue, day, worklogs, onOpenDetails }: CellProps) {
   }
 
   return (
-    <div className="cell-root" data-state={status.state === 'idle' ? undefined : status.state}>
-      <input
-        ref={inputRef}
-        className="cell-input"
-        inputMode="decimal"
-        aria-label={`${issue.key} ${format(new Date(`${day}T00:00:00`), 'd MMM')} hours`}
-        aria-invalid={invalid || undefined}
-        value={text}
-        disabled={status.state === 'saving'}
-        onChange={(e) => {
-          setText(e.target.value)
-          setInvalid(false)
-        }}
-        onBlur={commit}
-        onKeyDown={onKeyDown}
-      />
-      <button type="button" className="cell-more" aria-label="Details" onClick={onOpenDetails}>
-        ⋯
-      </button>
-      {status.state === 'error' && (
-        <div className="cell-error" role="alert">
-          {status.message}
-        </div>
-      )}
-      <ConfirmDialog
-        open={pending !== null}
-        message={pending ? describeAction(pending, issue.key, day) : ''}
-        danger={pending?.kind === 'delete'}
-        onConfirm={confirm}
-        onCancel={cancel}
-      />
-    </div>
+    <DetailsPopover open={open} onOpenChange={setOpen} issue={issue} day={day} worklogs={worklogs}>
+      <div className="cell-root" data-state={status.state === 'idle' ? undefined : status.state}>
+        <input
+          ref={inputRef}
+          className="cell-input"
+          inputMode="decimal"
+          aria-label={`${issue.key} ${format(new Date(`${day}T00:00:00`), 'd MMM')} hours`}
+          aria-invalid={invalid || undefined}
+          value={text}
+          disabled={status.state === 'saving'}
+          onChange={(e) => {
+            setText(e.target.value)
+            setInvalid(false)
+          }}
+          onBlur={commit}
+          onKeyDown={onKeyDown}
+        />
+        <button type="button" className="cell-more" aria-label="Details" onClick={() => setOpen(true)}>
+          ⋯
+        </button>
+        {status.state === 'error' && (
+          <div className="cell-error" role="alert">
+            {status.message}
+          </div>
+        )}
+        <ConfirmDialog
+          open={pending !== null}
+          message={pending ? describeAction(pending, issue.key, day) : ''}
+          danger={pending?.kind === 'delete'}
+          onConfirm={confirm}
+          onCancel={cancel}
+        />
+      </div>
+    </DetailsPopover>
   )
 }

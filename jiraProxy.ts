@@ -27,11 +27,12 @@ export function buildJiraProxy(
         return ''
       },
       headers: { Authorization: `Basic ${auth}` },
-      // Jira's XSRF check rejects requests carrying a browser origin.
+      // Jira answers 403 to writes that carry a browser user-agent (not to other clients).
       configure: (proxy) => {
         proxy.on('proxyReq', (proxyReq) => {
           proxyReq.removeHeader('origin')
           proxyReq.removeHeader('referer')
+          proxyReq.setHeader('User-Agent', 'jira-timesheet')
         })
       },
     },

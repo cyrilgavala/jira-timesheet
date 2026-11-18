@@ -23,6 +23,23 @@ export function decideCellCommit(worklogs: Worklog[], input: string): CellAction
   return { kind: 'update', worklog: current, seconds: parsed.seconds }
 }
 
+// Popover edits can change hours, the comment, or both. The message names only what changes.
+export function describeEdit(
+  worklog: Worklog,
+  seconds: number,
+  commentChanged: boolean,
+  issueKey: string,
+  day: string,
+): string {
+  const date = format(new Date(`${day}T00:00:00`), 'd MMM')
+  const parts: string[] = []
+  if (seconds !== worklog.timeSpentSeconds) {
+    parts.push(`${formatHours(worklog.timeSpentSeconds)}h → ${formatHours(seconds)}h`)
+  }
+  if (commentChanged) parts.push('comment')
+  return `Change ${parts.join(' and ')} on ${issueKey}, ${date}?`
+}
+
 const COMMENT_LIMIT = 40
 
 // Exact confirmation copy. `day` is yyyy-MM-dd.
