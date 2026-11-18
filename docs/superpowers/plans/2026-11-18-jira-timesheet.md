@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Plain CSS only (one global `src/styles.css` with CSS custom properties). No Tailwind, no CSS-in-JS.
-- All visual design (palette, type, spacing, states, focus rings) done by invoking the **ui-ux-pro-max** skill.
+- Visual design is done: `src/styles.css` (minimal Swiss style, made with ui-ux-pro-max) + `docs/design/mockup.html`. Components use its class contract; new visual needs go through **ui-ux-pro-max**.
 - Env vars `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN` — never `VITE_`-prefixed; never imported in `src/`. Sole exception: the non-secret site URL is injected as `__JIRA_SITE__` (Task 6) for "open in Jira" links.
 - Classic API token, Basic auth against `JIRA_BASE_URL`. Proxy strips `Origin` and `Referer`.
 - Jira REST **v3** for every call.
@@ -38,13 +38,13 @@
 ### Task 1: Scaffold, proxy config, test setup
 
 **Files:**
-- Create: `package.json`, `tsconfig*.json`, `index.html`, `src/main.tsx`, `src/App.tsx` (placeholder), `src/styles.css` (empty), `vite.config.ts`, `jiraProxy.ts`, `jiraProxy.test.ts`, `vitest.globalSetup.ts`, `.env.example`, `README.md`
+- Create: `package.json`, `tsconfig*.json`, `index.html`, `src/main.tsx`, `src/App.tsx` (placeholder), `vite.config.ts`, `jiraProxy.ts`, `jiraProxy.test.ts`, `vitest.globalSetup.ts`, `.env.example`, `README.md`
 
 **Interfaces:**
 - Produces: `buildJiraProxy(env: Record<string,string>): Record<string, ProxyOptions> | null` (from `vite`'s `ProxyOptions`), used by `vite.config.ts` for both `server.proxy` and `preview.proxy`. Returns `null` (and Vite config logs a warning) when any of the three vars is missing.
 - Produces: npm scripts `dev`, `build` (`tsc -b && vite build`), `preview`, `test` (`vitest run`).
 
-- [ ] **Step 1:** Scaffold with `npm create vite@latest . -- --template react-ts` (keep existing `.gitignore`, `docs/`), then `npm i @tanstack/react-query date-fns @radix-ui/react-popover @radix-ui/react-alert-dialog` and `npm i -D vitest jsdom @testing-library/react @testing-library/user-event`. Delete template demo assets/CSS.
+- [ ] **Step 1:** Scaffold with `npm create vite@latest . -- --template react-ts` (keep existing `.gitignore`, `docs/`, `src/styles.css`), then `npm i @tanstack/react-query date-fns @radix-ui/react-popover @radix-ui/react-alert-dialog` and `npm i -D vitest jsdom @testing-library/react @testing-library/user-event`. Delete template demo assets/CSS.
 - [ ] **Step 2:** Vitest config in `vite.config.ts` (`test.globalSetup: './vitest.globalSetup.ts'`, default env `node`); `vitest.globalSetup.ts` sets `process.env.TZ = 'Europe/Bratislava'`.
 - [ ] **Step 3: Write failing tests** in `jiraProxy.test.ts`:
   - `returns null when JIRA_API_TOKEN missing` → `expect(buildJiraProxy({JIRA_BASE_URL:'https://x.atlassian.net', JIRA_EMAIL:'a@b.c'})).toBeNull()`
@@ -160,7 +160,7 @@
 - Produces global `__JIRA_SITE__: string` — `vite.config.ts` adds `define: { __JIRA_SITE__: JSON.stringify(env.JIRA_BASE_URL ?? '') }`, declared in `src/vite-env.d.ts`. Only the site URL; email/token stay server-side.
 - Produces `Grid` props: `{ month: Date; issues: Issue[]; cells: Cells; renderCell: (issue: Issue, day: string, worklogs: Worklog[]) => ReactNode; footer?: ReactNode }`. Task 6 passes a read-only renderer; Task 7 replaces it.
 
-- [ ] **Step 1:** Invoke **ui-ux-pro-max** for a dense data-grid timesheet (light theme, optional dark via `prefers-color-scheme`): tokens as CSS custom properties in `styles.css` — grid lines, weekend/today shading, cell states (saving / error / invalid / multi-worklog marker), focus ring, dialog/popover surfaces. Meet WCAG AA contrast.
+- [ ] **Step 1:** Import the existing `src/styles.css` in `main.tsx`. It is the finished minimal design (tokens + all component styles, light/dark); its header comment lists the class contract — use those class names in every component (Tasks 6–9). Reference render: `docs/design/mockup.html`. Change the CSS only to fix bugs found while wiring; any new visual need goes through **ui-ux-pro-max**.
 - [ ] **Step 2:** Implement hooks + `App`: `QueryClientProvider`; month state starting at current month; `useMe` error (any) → `StatusScreen` "Can't reach Jira — check `.env.local` (JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN) and restart `npm run dev`."; loading state; empty month → "No worklogs in <Month yyyy>." plus the grid footer (so Add ticket still works later).
 - [ ] **Step 3:** `MonthHeader`: `◀`/`▶` buttons (`aria-label` "Previous month"/"Next month"), title `MMMM yyyy`, month total via `formatHours`.
 - [ ] **Step 4:** `Grid`: semantic `<table>`, sticky header row and first column; ticket cell = key as link to `${__JIRA_SITE__}/browse/${key}` (opens in new tab). Rows sorted by key (natural: project then number). Weekend and today column classes. Row Σ column and day Σ footer row.
