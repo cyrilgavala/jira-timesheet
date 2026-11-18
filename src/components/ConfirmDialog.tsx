@@ -1,16 +1,17 @@
-import { useRef } from 'react'
+import { useRef, type ReactNode } from 'react'
 import * as AlertDialog from '@radix-ui/react-alert-dialog'
 
 interface ConfirmDialogProps {
   open: boolean
   message: string
   danger?: boolean
+  children?: ReactNode
   onConfirm: () => void
   onCancel: () => void
 }
 
 // Every write goes through here. Confirm is focused, so Enter confirms and Escape cancels.
-export function ConfirmDialog({ open, message, danger, onConfirm, onCancel }: ConfirmDialogProps) {
+export function ConfirmDialog({ open, message, danger, children, onConfirm, onCancel }: ConfirmDialogProps) {
   const confirmRef = useRef<HTMLButtonElement>(null)
 
   return (
@@ -26,6 +27,7 @@ export function ConfirmDialog({ open, message, danger, onConfirm, onCancel }: Co
         >
           <AlertDialog.Title>Confirm change</AlertDialog.Title>
           <AlertDialog.Description>{message}</AlertDialog.Description>
+          {children}
           <div className="dialog-actions">
             <button type="button" className="btn" onClick={onCancel}>
               Cancel

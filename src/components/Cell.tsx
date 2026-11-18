@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { format } from 'date-fns'
 import { JiraError } from '../api/jira'
 import { useWorklogMutations } from '../data/queries'
+import { textToAdf } from '../lib/adf'
 import { describeAction, decideCellCommit, type CellAction } from '../lib/cellAction'
 import { formatHours } from '../lib/hours'
 import { sumSeconds } from '../lib/grid'
@@ -54,6 +55,7 @@ function SingleCell({ issue, day, worklogs }: CellProps) {
   const [invalid, setInvalid] = useState(false)
   const [status, setStatus] = useState<Status>({ state: 'idle' })
   const [pending, setPending] = useState<Exclude<CellAction, { kind: 'noop' | 'invalid' }> | null>(null)
+  const [comment, setComment] = useState('') // shown only when creating; reset on each new confirmation
   const pendingRef = useRef(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const { create, update, remove } = useWorklogMutations()
@@ -75,6 +77,7 @@ function SingleCell({ issue, day, worklogs }: CellProps) {
     if (action.kind === 'invalid' || action.kind === 'noop') return
     setStatus({ state: 'idle' })
     pendingRef.current = true
+    setComment('')
     setPending(action)
   }
 
@@ -95,7 +98,7 @@ function SingleCell({ issue, day, worklogs }: CellProps) {
       },
     }
     if (pending.kind === 'create') {
-      create.mutate({ issueKey: issue.key, day, seconds: pending.seconds }, callbacks)
+      create.mutate({ issueKey: issue.key, day, seconds: pending.seconds, comment: textToAdf(comment) }, callbacks)
     } else if (pending.kind === 'update') {
       update.mutate({ issueKey: issue.key, id: pending.worklog.id, seconds: pending.seconds }, callbacks)
     } else {
@@ -157,7 +160,14 @@ function SingleCell({ issue, day, worklogs }: CellProps) {
           danger={pending?.kind === 'delete'}
           onConfirm={confirm}
           onCancel={cancel}
-        />
+        >
+          {pending?.kind === 'create' && (
+            <label className="field">
+              <span>Comment</span>
+              <textarea value={comment} onChange={(e) => setComment(e.target.value)} />
+            </label>
+          )}
+        </ConfirmDialog>
       </div>
     </DetailsPopover>
   )

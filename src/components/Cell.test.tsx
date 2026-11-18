@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createWorklog, deleteWorklog, JiraError, updateWorklog } from '../api/jira'
+import { textToAdf } from '../lib/adf'
 import { Cell } from './Cell'
 import type { Worklog } from '../lib/types'
 
@@ -70,6 +71,29 @@ describe('single-value cell', () => {
     await user.click(screen.getByRole('button', { name: 'Confirm' }))
     await waitFor(() => expect(createWorklog).toHaveBeenCalledTimes(1))
     expect(createWorklog).toHaveBeenCalledWith('P-1', '2026-11-12', 7200, undefined)
+  })
+
+  it('sends the comment typed in the confirmation with a new worklog', async () => {
+    vi.mocked(createWorklog).mockResolvedValue(undefined)
+    const user = userEvent.setup()
+    renderCell([])
+    await user.type(screen.getByRole('textbox'), '2{Enter}')
+    await user.type(screen.getByRole('textbox', { name: 'Comment' }), 'standup')
+    await user.click(screen.getByRole('button', { name: 'Confirm' }))
+    await waitFor(() => expect(createWorklog).toHaveBeenCalledTimes(1))
+    expect(createWorklog).toHaveBeenCalledWith('P-1', '2026-11-12', 7200, textToAdf('standup'))
+  })
+
+  it('a comment typed for one confirmation does not carry into the next', async () => {
+    vi.mocked(createWorklog).mockResolvedValue(undefined)
+    const user = userEvent.setup()
+    renderCell([])
+    const input = screen.getByRole('textbox')
+    await user.type(input, '2{Enter}')
+    await user.type(screen.getByRole('textbox', { name: 'Comment' }), 'first')
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    await user.type(input, '2{Enter}')
+    expect(screen.getByRole('textbox', { name: 'Comment' })).toHaveProperty('value', '')
   })
 
   it('Cancel reverts to the saved value and sends nothing', async () => {
