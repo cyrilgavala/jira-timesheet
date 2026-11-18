@@ -1,5 +1,7 @@
 import type { ProxyOptions } from 'vite'
 
+export const APP_HEADER = 'x-timesheet'
+
 // Forwards /jira/* to the Jira site with Basic auth added server-side, so the
 // token never reaches the browser. Returns null when config is incomplete.
 export function buildJiraProxy(
@@ -14,6 +16,16 @@ export function buildJiraProxy(
       target: JIRA_BASE_URL,
       changeOrigin: true,
       rewrite: (path) => path.replace(/^\/jira/, ''),
+      // Only the app's own fetch calls (which set this header) may use the credentials.
+      // A cross-site page cannot add a custom header without a preflight, which this rejects.
+      bypass: (req, res) => {
+        const path = (req.url ?? '').split('?')[0]
+        if (req.headers[APP_HEADER] === '1' && path.startsWith('/jira/rest/api/3/')) return undefined
+        if (!res) return false // websocket upgrade: refuse
+        res.statusCode = 403
+        res.end()
+        return ''
+      },
       headers: { Authorization: `Basic ${auth}` },
       // Jira's XSRF check rejects requests carrying a browser origin.
       configure: (proxy) => {

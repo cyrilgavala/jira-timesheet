@@ -16,6 +16,7 @@
 - Visual design is done: `src/styles.css` (minimal Swiss style, made with ui-ux-pro-max) + `docs/design/mockup.html`. Components use its class contract; new visual needs go through **ui-ux-pro-max**.
 - Env vars `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN` — never `VITE_`-prefixed; never imported in `src/`. Sole exception: the non-secret site URL is injected as `__JIRA_SITE__` (Task 6) for "open in Jira" links.
 - Classic API token, Basic auth against `JIRA_BASE_URL`. Proxy strips `Origin` and `Referer`.
+- Every `/jira` request from the app sends header `X-Timesheet: 1`. The proxy answers 403 to requests without it, and to any path outside `/jira/rest/api/3/` (cross-site forgery guard).
 - Jira REST **v3** for every call.
 - Only worklogs with `author.accountId === me` are shown or touched.
 - Every create/update/delete goes through the confirmation dialog. No write without Confirm.
@@ -134,7 +135,7 @@
   - `updateWorklog(issueKey: string, id: string, seconds: number, comment?: AdfDoc): Promise<void>` — omit `comment` key when `undefined`
   - `deleteWorklog(issueKey: string, id: string): Promise<void>`
   - `pickIssues(query: string): Promise<Issue[]>` — `GET /jira/rest/api/3/issue/picker?query=`, flatten `sections[].issues[]` into `{key, summary: summaryText}`, dedupe by key
-  - All requests: `Accept: application/json`, JSON bodies with `Content-Type: application/json`; non-2xx → `JiraError`.
+  - All requests: `X-Timesheet: 1` (required by the proxy gate), `Accept: application/json`, JSON bodies with `Content-Type: application/json`; non-2xx → `JiraError`.
 
 - [ ] **Step 1: Write failing tests** with `vi.stubGlobal('fetch', ...)`:
   - search JQL string equals `worklogAuthor = currentUser() AND worklogDate >= "2026-11-01" AND worklogDate <= "2026-11-30"`; two pages via `nextPageToken` → both pages' issues returned

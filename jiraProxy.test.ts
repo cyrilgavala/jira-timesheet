@@ -30,6 +30,37 @@ describe('buildJiraProxy', () => {
     )
   })
 
+  describe('request gate', () => {
+    const gate = (url: string, headers: Record<string, string>) => {
+      const p = buildJiraProxy(env)!
+      const res = { statusCode: 200, end: vi.fn(), writableEnded: false }
+      const result = (p['/jira'].bypass as (...args: unknown[]) => unknown)(
+        { url, headers },
+        res,
+        {},
+      )
+      return { res, result }
+    }
+
+    it('rejects requests without the app header (blocks cross-site forgery)', () => {
+      const { res } = gate('/jira/rest/api/3/issue/P-1/worklog', {})
+      expect(res.statusCode).toBe(403)
+      expect(res.end).toHaveBeenCalled()
+    })
+
+    it('rejects paths outside the Jira REST v3 API', () => {
+      const { res } = gate('/jira/secure/Dashboard.jspa', { 'x-timesheet': '1' })
+      expect(res.statusCode).toBe(403)
+      expect(res.end).toHaveBeenCalled()
+    })
+
+    it('lets app requests to the REST v3 API through', () => {
+      const { res, result } = gate('/jira/rest/api/3/myself?x=1', { 'x-timesheet': '1' })
+      expect(res.end).not.toHaveBeenCalled()
+      expect(result).toBeUndefined()
+    })
+  })
+
   it('strips Origin and Referer before the request is sent', () => {
     const p = buildJiraProxy(env)!
     const on = vi.fn()
