@@ -1,15 +1,20 @@
 import { addMonths, format, startOfMonth, subMonths } from 'date-fns'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AddTicket } from './components/AddTicket'
 import { Cell } from './components/Cell'
 import { Grid } from './components/Grid'
 import { MonthHeader } from './components/MonthHeader'
 import { StatusScreen } from './components/StatusScreen'
 import { useMonth } from './data/queries'
+import { getJiraSite } from './lib/config'
 import { monthDays, sumSeconds } from './lib/grid'
 import type { Issue } from './lib/types'
 
 export default function App() {
+    const [siteUrl, setSiteUrl] = useState('')
+    useEffect(() => {
+        getJiraSite().then(setSiteUrl)
+    }, [])
     const [month, setMonth] = useState(() => startOfMonth(new Date()))
     const { me, issues, worklogs, cells, isLoading, error } = useMonth(month)
 
@@ -67,6 +72,7 @@ export default function App() {
                 cells={cells}
                 renderCell={(issue, day, list) => <Cell issue={issue} day={day} worklogs={list} />}
                 footer={addRow}
+                siteUrl={siteUrl}
             />
             <footer className="app-footer">For personal use only</footer>
         </div>

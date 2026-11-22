@@ -10,6 +10,7 @@ interface GridProps {
     cells: Cells
     renderCell: (issue: Issue, day: string, worklogs: Worklog[]) => ReactNode
     footer?: ReactNode
+    siteUrl?: string
 }
 
 const dayClass = (d: Date) => {
@@ -17,10 +18,10 @@ const dayClass = (d: Date) => {
     return [weekend && 'is-weekend', isToday(d) && 'is-today'].filter(Boolean).join(' ')
 }
 
-export function Grid({ month, issues, cells, renderCell, footer }: GridProps) {
+export function Grid({ month, issues, cells, renderCell, footer, siteUrl }: GridProps) {
     const days = monthDays(month)
     const sorted = [...issues].sort((a, b) => a.key.localeCompare(b.key, undefined, { numeric: true }))
-    const siteUrl = __JIRA_SITE__
+    const resolvedSite = siteUrl || __JIRA_SITE__
 
     return (
         <div className="grid-wrap">
@@ -45,7 +46,7 @@ export function Grid({ month, issues, cells, renderCell, footer }: GridProps) {
                     {sorted.map((issue) => (
                         <tr key={issue.key}>
                             <th className="col-ticket" scope="row">
-                                <a className="ticket-key" href={`${siteUrl}/browse/${issue.key}`} target="_blank" rel="noreferrer">
+                                <a className="ticket-key" href={`${resolvedSite}/browse/${issue.key}`} target="_blank" rel="noreferrer">
                                     {issue.key}
                                 </a>
                                 <span className="ticket-summary" title={issue.summary}>{issue.summary}</span>

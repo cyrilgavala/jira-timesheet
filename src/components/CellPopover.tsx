@@ -1,10 +1,11 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import * as Popover from '@radix-ui/react-popover'
 import { format } from 'date-fns'
 import { useWorklogMutations } from '../data/queries'
 import { adfToText, isPlainAdf, textToAdf } from '../lib/adf'
 import { describeAction, describeEdit } from '../lib/cellAction'
 import { formatHours, parseHours } from '../lib/hours'
+import { getJiraSite } from '../lib/config'
 import type { Issue, Worklog } from '../lib/types'
 import { ConfirmDialog } from './ConfirmDialog'
 
@@ -55,6 +56,10 @@ interface EditState {
 function WorklogDetails({ issue, day, worklogs, onConfirmingChange }: WorklogDetailsProps) {
   const { create, update, remove } = useWorklogMutations()
   const [editing, setEditing] = useState<EditState | null>(null)
+  const [siteUrl, setSiteUrl] = useState('')
+  useEffect(() => {
+    getJiraSite().then(setSiteUrl)
+  }, [])
   const [adding, setAdding] = useState<{ hours: string; comment: string } | null>(null)
   const [pending, setPending] = useState<{ message: string; run: () => void } | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -155,7 +160,7 @@ function WorklogDetails({ issue, day, worklogs, onConfirmingChange }: WorklogDet
               ) : (
                 <p className="readonly-note">
                   Formatted comment ·{' '}
-                  <a href={`${__JIRA_SITE__}/browse/${issue.key}?focusedWorklogId=${w.id}`} target="_blank" rel="noreferrer">
+                  <a href={`${siteUrl}/browse/${issue.key}?focusedWorklogId=${w.id}`} target="_blank" rel="noreferrer">
                     edit in Jira
                   </a>
                 </p>
